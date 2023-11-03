@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-
 # Load your data
 data = pd.read_csv('unique_patterns.csv')
-
 
 def add_bg_from_url():
     st.markdown(
@@ -13,12 +11,12 @@ def add_bg_from_url():
          .stApp {{
              background-image: url("https://cdn.pixabay.com/photo/2019/04/24/11/27/flowers-4151900_960_720.jpg");
              background-attachment: fixed;
-             background-size: cover
+             background-size: cover;
          }}
          </style>
          """,
          unsafe_allow_html=True
-     )
+    )
 
 add_bg_from_url()
 
@@ -46,4 +44,4 @@ if diseases_associated_with_symptoms:
     for disease in mutual_diseases:
         st.write(disease)
 else:
-    st.write("Please enter your symptom(s). Pretty Please.")
+    st.write("Sorry, it looks like there are no diseases that correlate with those symptoms in our database.")

@@ -3,8 +3,13 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 
+import joblib
+print("Imported joblib from:", joblib.__file__)
+
+
 # Load the saved Random Forest classifier
 loaded_model = joblib.load('rf_model.joblib')
+
 
 def add_bg_from_url():
     st.markdown(

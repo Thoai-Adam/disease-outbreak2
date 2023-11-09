@@ -1,3 +1,7 @@
+import os
+print(os.getcwd())
+
+
 import streamlit as st
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -20,10 +24,16 @@ from sklearn.ensemble import RandomForestClassifier
 # Rest of your Streamlit app code...
 
 
+import pandas as pd
 
+# Specify the relative path to the CSV file
+file_path = 'codeupcapstone/combined_disease_df_final.csv'
+
+# Read the CSV file
+df = pd.read_csv(file_path)
 
 # Load your dataset
-df = pd.read_csv('combined_disease_df_final.csv')
+#df = pd.read_csv('combined_disease_df_final.csv')
 
 def add_bg_from_url():
     st.markdown(

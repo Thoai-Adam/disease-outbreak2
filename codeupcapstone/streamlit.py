@@ -6,6 +6,20 @@ from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 import joblib
 
+import streamlit as st
+
+# Install required libraries
+st.write("Installing required libraries...")
+st.run("pip install -U scikit-learn")
+st.write("Libraries installed successfully.")
+
+# Now you can import the required modules
+from sklearn.ensemble import RandomForestClassifier
+
+# Rest of your Streamlit app code...
+
+
+
 # Load your dataset
 df = pd.read_csv('combined_disease_df_final.csv')
 

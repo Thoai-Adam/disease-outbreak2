@@ -24,13 +24,11 @@ from sklearn.ensemble import RandomForestClassifier
 # Rest of your Streamlit app code...
 
 
-import pandas as pd
+# Specify the URL of the raw CSV file on GitHub
+github_csv_url = 'https://raw.githubusercontent.com/hitzuMan/disease-outbreak2/main/codeupcapstone/combined_disease_df_final.csv'
 
-# Specify the relative path to the CSV file
-file_path = 'codeupcapstone/combined_disease_df_final.csv'
-
-# Read the CSV file
-df = pd.read_csv(file_path)
+# Use pandas to read the CSV file directly from the URL
+df = pd.read_csv(github_csv_url)
 
 # Load your dataset
 #df = pd.read_csv('combined_disease_df_final.csv')

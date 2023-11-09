@@ -1,15 +1,13 @@
 import streamlit as st
 import pandas as pd
-import joblib
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
-
 import joblib
-print("Imported joblib from:", joblib.__file__)
 
-
-# Load the saved Random Forest classifier
-loaded_model = joblib.load('rf_model.joblib')
-
+# Load your dataset
+df = pd.read_csv('combined_disease_df_final.csv')
 
 def add_bg_from_url():
     st.markdown(
@@ -32,15 +30,14 @@ add_bg_from_url()
 
 
 
-import streamlit as st
 
 # Banner
 st.markdown("# Revolutionizing Disease Prediction with Advanced Data Science")
-st.markdown("Bridging the gap between data-driven insights and healthcare expertise for better diagnostic support.")
+st.markdown("To develop a machine learning model that accurately predicts the disease based on the reported symptoms.")
 
 # Introduction
-st.markdown("## Introduction")
-st.markdown("A quick dive into how we're pushing the frontiers of preliminary diagnostics with a data-informed approach to identifying potential diseases based on symptoms.")
+st.markdown("## Background")
+st.markdown("Diagnosis of diseases often requires expertise and thorough medical examination. However, for common ailments or as a preliminary diagnostic tool, we aim to utilize symptom data to predict potential diseases. This tool can assist healthcare professionals as a reference, guide patients in understanding their conditions, or even help in telemedicine where immediate physical diagnosis isn't feasible.")
 
 # About
 st.markdown("## About")
@@ -48,10 +45,20 @@ st.markdown("### Project Overview")
 st.markdown("A visionary project aimed to harness symptom data for predictive analysis, aimed at supporting healthcare professionals and patients with early diagnosis.")
 st.markdown("Utilization of a rich dataset covering a multitude of diseases and corresponding symptoms, underscoring the diverse and complex nature of disease symptomatology.")
 
+st.markdown("### Expected Outcomes") 
+st.markdown("A robust model that can predict the disease based on the given symptoms.")
+st.markdown("An understanding of the relationship between symptoms and diseases – which symptoms are strong indicators of specific diseases.")
+st.markdown("A baseline comparison to understand the efficacy of our model.")
+
+st.markdown("### Constraints")
+st.markdown("The model is not a replacement for professional medical advice. It's a supplementary tool to assist in understanding symptoms.")
+st.markdown("The accuracy of the model is contingent on the quality and comprehensiveness of the data.")
+
+
 # Data Science Pipeline
 st.markdown("## Data Science Pipeline")
 st.markdown("1. **Data Acquisition:**")
-st.markdown("   - The data encompasses a comprehensive collection of symptoms and their related diseases, forming a robust foundation for the predictive model.")
+st.markdown("   - The data encompasses a comprehensive collection of symptoms and their related diseases through webscraping from WHO and Columbia University, forming a robust foundation for the predictive model.")
 st.markdown("2. **Data Cleaning:**")
 st.markdown("   - Rigorous preprocessing steps were taken to ensure quality and consistency, involving cleaning, encoding, and transforming data for optimal model input.")
 st.markdown("3. **Data Exploration:**")
@@ -60,7 +67,7 @@ st.markdown("4. **Feature Engineering:**")
 st.markdown("   - The process included creating new features to enhance the model's ability to learn complex patterns from the data.")
 st.markdown("5. **Modeling:**")
 st.markdown("   - A meticulous evaluation of various models was performed, with details provided on training and validation accuracies:")
-st.markdown("     - Baseline Model for reference.")
+st.markdown("     - Baseline Model Accuracy: 0.0208")
 st.markdown("     - Random Forest with a test accuracy of 89.58%.")
 st.markdown("     - Logistic Regression with notable validation accuracy.")
 st.markdown("     - KNN providing a satisfactory baseline but with room for improvement.")
@@ -83,130 +90,116 @@ st.markdown("### Model Prediction")
 st.markdown("A detailed explanation of how the Random Forest model utilizes the input symptoms to predict possible diseases, with a note on the importance of professional medical consultation for accurate diagnosis.")
 
 
+#=============================================================================================
+# Encode the target variable 'disease' using LabelEncoder
+le = LabelEncoder()
+df['disease_code'] = le.fit_transform(df['disease'])
+
+# Separate features and target variable
+X = df.drop(columns=['disease', 'count of disease occurrence', 'disease_code'])
+y = df['disease_code']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a RandomForestClassifier
+clf = RandomForestClassifier(random_state=42)
+clf.fit(X_train, y_train)
+
+# Create a Streamlit app
+st.title("Symptom-Based Disease Probability Predictor")
+
+# Create a multiselect dropdown for selecting symptoms
+selected_symptoms = st.multiselect("Select Symptoms", X.columns)
+
+# Sort selected symptoms in ascending order
+selected_symptoms.sort()
+
+# Create a Predict button
+if st.button("Predict"):
+    # Create a new instance with selected symptoms
+    new_instance = pd.DataFrame(0, index=[0], columns=X.columns)
+    new_instance[selected_symptoms] = 1
+
+    # Make predictions using predict_proba for the new instance
+    proba = clf.predict_proba(new_instance)
+
+    # Extract the predicted probabilities for each disease
+    disease_probabilities = pd.DataFrame({
+        'Disease': le.inverse_transform(clf.classes_),
+        'Probability': proba[0] * 100  # Convert probabilities to percentages
+    })
+
+    # Display the top 5 probabilities in a bar chart
+    top5_diseases = disease_probabilities.nlargest(5, 'Probability')
+
+    # Streamlit app
+    st.title('Top 5 Disease Probabilities')
+
+    # Create a bar chart
+    fig, ax = plt.subplots()
+    bars = ax.bar(top5_diseases['Disease'], top5_diseases['Probability'])
+    ax.set_xlabel('Predicted Diseases')
+    ax.set_ylabel('Probability (%)')
+
+    # Rotate x-axis labels at a 45-degree angle and set font size to 10
+    ax.set_xticklabels(top5_diseases['Disease'], rotation=90, fontsize=10)
+
+    # Display the numbers on top of each bar as whole percentages
+    for bar in bars:
+        yval = bar.get_height()
+        percentage_label = f'{int(yval)}%'
+        plt.text(bar.get_x() + bar.get_width()/2, yval, percentage_label, ha='center', va='bottom', fontsize=10)
+
+    # Display the chart using Streamlit's st.pyplot
+    st.pyplot(fig)
+
+
+
+#=============================================================================================
 
 
 
 
 
 
-# Define a function to make probability predictions
-def predict_disease_probs(features):
-    prediction_probs = loaded_model.predict_proba([features])
-    return prediction_probs
+# Conclusion and Recommendations
+conclusion_and_recommendations = """
+### Conclusion
 
-# Define the function to encode disease names
-def encode_disease(index):
-    disease_names = [
-        'Migraine', 'Hepatitis C', 'Impetigo', 'Pneumonia', 'Peptic ulcer disease',
-        'Drug Reaction', 'Hypothyroidism', 'Gastroenteritis', 'Tuberculosis', 'Psoriasis',
-        'Varicose veins', 'Chronic cholestasis', 'Hepatitis B', 'Hepatitis D', 'Typhoid',
-        'Hypoglycemia', 'Alcoholic hepatitis', 'GERD', 'Paralysis (brain hemorrhage)', 'Arthritis',
-        'Cervical spondylosis', 'Jaundice', 'Urinary tract infection', 'Bronchial Asthma', 'Osteoarthristis',
-        'Malaria', 'Heart attack', 'Hepatitis E', 'Common Cold', 'Allergy', 'AIDS', 'Diabetes',
-        'Chicken pox', 'Fungal infection', '(Vertigo) Paroxysmal Positional Vertigo', 'Hyperthyroidism',
-        'Acne', 'Dengue', 'Hypertension', 'Dimorphic hemorrhoids (piles)', 'Hepatitis A'
-    ]
+The Disease Symptoms Prediction Model project aimed to leverage symptom data to predict potential diseases, assisting healthcare professionals and patients in preliminary diagnostics. This objective was approached through the development of machine learning models, utilizing a dataset encompassing a variety of diseases and their associated symptoms.
 
-    if 0 <= index < len(disease_names):
-        return disease_names[index]
-    else:
-        return None  # Return None for out-of-range indices
+**Achievement of Goals:**
+- We successfully developed a machine learning model, with the Random Forest classifier emerging as the most accurate, significantly outperforming the baseline model.
+- The relationship between symptoms and diseases was elucidated through statistical analysis, confirming that certain symptoms such as abdominal pain and vomiting are strong indicators of specific conditions like Alcoholic Hepatitis and Chronic Cholestasis, respectively.
+- A baseline model was established, providing a reference point for evaluating the effectiveness of more sophisticated predictive models.
 
-# Streamlit app
-st.title('Disease Prediction App')
+**Key Findings:**
+- Statistical significance was identified between certain symptoms and diseases, validating the model's capability to capture these relationships.
+- Symptom frequency analysis and N-gram visualizations provided deeper insights into common and distinctive symptom patterns.
+- The Random Forest model, with a test accuracy of 89.58%, was identified as the most promising predictive model in our trials.
 
-# Create input fields for feature values
-feature_names = [
-    "abdominal_pain", "abnormal_menstruation", "acidity", "acute_liver_failure", "altered_sensorium", "anxiety", 
-    "back_pain", "belly_pain", "blackheads", "bladder_discomfort", "blister", "blood_in_sputum", "bloody_stool", 
-    "blurred_and_distorted_vision", "breathlessness", "brittle_nails", "bruising", "burning_micturition", 
-    "chest_pain", "chills", "cold_hands_and_feets", "coma", "congestion", "constipation", "continuous_feel_of_urine", 
-    "continuous_sneezing", "cough", "cramps", "dark_urine", "dehydration", "depression", "diarrhoea", 
-    "foul_smell_ofurine", "distention_of_abdomen", "dizziness", "drying_and_tingling_lips", "enlarged_thyroid", 
-    "excessive_hunger", "extra_marital_contacts", "family_history", "fast_heart_rate", "fatigue", "fluid_overload", 
-    "spotting_urination", "headache", "high_fever", "hip_joint_pain", "history_of_alcohol_consumption", 
-    "increased_appetite", "indigestion", "inflammatory_nails", "internal_itching", "irregular_sugar_level", 
-    "irritability", "irritation_in_anus", "joint_pain", "knee_pain", "lack_of_concentration", "lethargy", 
-    "loss_of_appetite", "loss_of_balance", "loss_of_smell", "malaise", "mild_fever", "mood_swings", 
-    "movement_stiffness", "mucoid_sputum", "muscle_pain", "muscle_wasting", "muscle_weakness", "nausea", 
-    "neck_pain", "nodal_skin_eruptions", "obesity", "pain_behind_the_eyes", "pain_during_bowel_movements", 
-    "pain_in_anal_region", "painful_walking", "palpitations", "passage_of_gases", "patches_in_throat", "phlegm", 
-    "polyuria", "prominent_veins_on_calf", "puffy_face_and_eyes", "pus_filled_pimples", 
-    "receiving_blood_transfusion", "receiving_unsterile_injections", "red_sore_around_nose", 
-    "red_spots_over_body", "redness_of_eyes", "restlessness", "runny_nose", "rusty_sputum", "scurring", 
-    "shivering", "silver_like_dusting", "sinus_pressure", "skin_peeling", "skin_rash", "slurred_speech", 
-    "small_dents_in_nails", "spinning_movements", "dischromic_patches", "stiff_neck", "stomach_bleeding", 
-    "stomach_pain", "sunken_eyes", "sweating", "swelled_lymph_nodes", "swelling_joints", 
-    "swelling_of_stomach", "swollen_blood_vessels", "swollen_extremeties", "swollen_legs", 
-    "throat_irritation", "toxic_look_(typhos)", "ulcers_on_tongue", "unsteadiness", 
-    "visual_disturbances", "vomiting", "watering_from_eyes", "weakness_in_limbs", "weakness_of_one_body_side", 
-    "weight_gain", "weight_loss", "yellow_crust_ooze", "yellow_urine", "yellowing_of_eyes", "yellowish_skin", 
-    "itching"
-]
+**Recommendations:**
+- Due to its high validation and test accuracies, the Random Forest model is recommended for initial deployment in a controlled environment to gauge real-world efficacy.
+- Collaboration with medical professionals is advised to interpret the model's predictions and to incorporate their feedback for refinement.
 
-# Create a dropdown multiselect widget for feature values with an empty list as the default
-selected_features = st.multiselect(
-    'Select Features',
-    feature_names,
-    default=[]
-)
+**Next Steps:**
+- **Integration into User-Friendly Platforms:** The next phase involves creating a user interface for the model, making it accessible to end-users who can report symptoms and receive disease predictions.
+- **Dataset Expansion:** To improve the model's comprehensiveness and accuracy, we plan to include a broader range of diseases, especially rare conditions, to enhance predictive capabilities.
+- **Continuous Model Improvement:** We aim to continuously refine the model by incorporating medical professional feedback and adjusting it according to the latest medical research and data.
 
-# Create a dictionary to store feature values
-feature_values = {feature_name: 1 if feature_name in selected_features else 0 for feature_name in feature_names}
+**"If I Had More Time, I Would...":**
+- **Explore Advanced Models:** Experiment with deep learning and ensemble methods to potentially uncover complex patterns in symptom-disease relationships that simpler models might miss.
+- **Conduct a Thorough Hyperparameter Tuning:** Allocate more time to fine-tune the models, especially KNN, to ensure that we are not overlooking a potentially suitable model due to suboptimal parameters.
+- **Implement a Feedback Loop:** Develop a system to collect user and professional feedback on the model’s predictions to facilitate ongoing learning and improvement.
+- **Focus on Interpretability:** Devote efforts to make the model's decision process more transparent, aiding healthcare professionals in understanding the rationale behind predictions, which is crucial for medical applications.
 
-# Make probability predictions
-if st.button('Predict'):
-    if not selected_features:
-        st.warning('Please select at least one feature before predicting.')
-    else:
-        prediction_probs = predict_disease_probs(list(feature_values.values()))
+By adhering to these next steps and considerations, the project can make substantial progress towards its goal of becoming a reliable, assistive tool in the diagnostic process.
+"""
 
-        # Convert probabilities to percentages
-        percentages = [prob * 100 for prob in prediction_probs[0]]
+# Display the conclusion and recommendations
+st.markdown(conclusion_and_recommendations)
 
-        # Create a DataFrame to store the results
-        results_df = pd.DataFrame({
-            'Disease': [encode_disease(i) for i in range(len(loaded_model.classes_))],
-            'Probability': percentages
-        })
-
-        # Filter and display only diseases with probabilities > 0.0
-        filtered_results = results_df[results_df['Probability'] > 0.0]
-
-        # Sort the results by probability in descending order
-        sorted_results = filtered_results.sort_values(by='Probability', ascending=False)
-
-        # Create a red-themed bar chart with transparency and percentages on top of each bar
-        fig, ax = plt.subplots()
-        bars = ax.bar(sorted_results['Disease'], sorted_results['Probability'], alpha=0.5, color='red')
-        ax.set_xticklabels(sorted_results['Disease'], rotation=90, fontsize=10, color='black')
-        plt.xlabel('Disease', color='white')
-        plt.ylabel('Probability (%)', color='white')
-        ax.yaxis.label.set_color('white')
-        ax.tick_params(axis='x', colors='white')
-        ax.tick_params(axis='y', colors='white')
-
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(f'{height:.1f}%', xy=(bar.get_x() + bar.get_width() / 2, height), ha='center', va='bottom', fontsize=5, color='white')
-
-
-
-        # Set the background color of the plot to black
-        fig.patch.set_facecolor('black')
-        ax.set_facecolor('black')
-
-        st.pyplot(fig)
-        
-        
-# Conclusion and Future Work
-st.markdown("## Conclusion and Future Work")
-st.markdown("### Summary")
-st.markdown("A concise overview of the project's success, highlighting the Random Forest model's high accuracy and the potential of machine learning in healthcare.")
-st.markdown("### Recommendations")
-st.markdown("Advocating for the model's usage in a controlled clinical environment to complement medical expertise, with a call for continued collaboration for refinement and validation.")
-st.markdown("### Next Steps")
-st.markdown("Planned enhancements such as user interface improvements for the symptom selector and dataset expansion to encompass rarer conditions and ongoing model optimization based on user feedback and medical advancements.")
 
 # Footer
 st.markdown("## Footer")
@@ -215,4 +208,19 @@ st.markdown("Channels for reaching out for potential partnerships, contributions
 st.markdown("### Legal Disclaimer")
 st.markdown("A statement clarifying that the predictions made by the model are not a substitute for professional medical diagnosis or treatment.")
 st.markdown("### Credits")
-st.markdown("Acknowledgements to the data scientists, healthcare experts, and all who contributed to the success of this project.")
+st.markdown("Acknowledgements to the data scientists, healthcare experts, and instructors at CodeUp LLC who contributed to the success of this project.")
+
+
+# List of LinkedIn profiles
+linkedin_profiles = [
+    "https://www.linkedin.com/in/thoai-hung-nguyen/",
+    "https://www.linkedin.com/in/theodore-quansah/",
+    "https://www.linkedin.com/in/nishabista/",
+    "https://www.linkedin.com/in/marcelino-salazar/"
+]
+
+# Display LinkedIn profiles as clickable links
+st.markdown("### LinkedIn Profiles")
+for profile in linkedin_profiles:
+    st.markdown(f"[{profile}]({profile})")
+
